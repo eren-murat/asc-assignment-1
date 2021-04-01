@@ -37,14 +37,22 @@ class Consumer(Thread):
         self.retry_wait_time = retry_wait_time
 
     def run(self):
+        # Iterates through the list of carts and creates a new cart for each one of them
+        # Each cart has operations (adds and removes) that it has to perform
+        # When an operation returns false, the consumer waits the retry_wait_time and then
+        # tries the same operation.
+        # When an operation returns true, the quantity to be publised is decreased
         for cart in self.carts:
             new_cart_id = self.marketplace.new_cart()
-            for oper in cart:
-                for _ in range(oper["quantity"]):
-                    if oper["type"] == "add":
-                        response = self.marketplace.add_to_cart(new_cart_id, oper["product"])
-                    elif oper["type"] == "remove":
-                        response = self.marketplace.remove_from_cart(new_cart_id, oper["product"])
+            for item in cart:
+                quant = item["quantity"]
+                while quant > 0:
+                    if item["type"] == "add":
+                        response = self.marketplace.add_to_cart(new_cart_id, item["product"])
+                    elif item["type"] == "remove":
+                        response = self.marketplace.remove_from_cart(new_cart_id, item["product"])
                     if response is False:
                         time.sleep(self.retry_wait_time)
+                    else:
+                        quant -= 1
             self.marketplace.place_order(new_cart_id)

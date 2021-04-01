@@ -35,21 +35,21 @@ class Producer(Thread):
         self.products = products
         self.marketplace = marketplace
         self.republish_wait_time = republish_wait_time
-        self.producer_id = self.marketplace.register_producer()
 
     def run(self):
+        # Loop continuosly through the list of products and try to publish them
+        # When the publish function returns false, the producer waits the republis_wait_time
+        # and then tries to publish the same product again, thus making sure that the
+        # desired quantity of each product is published
+        # When the publish function returns true, the producer waits the normal_wait_time
+        # and the quantity to be published is decreased
+        new_producer_id = self.marketplace.register_producer()
         while True:
-            for product in self.products:
-                prod = product[0]
-                quantity = product[1]
-                normal_wait_time = product[2]
-                index = 0
-                while index < quantity:
-                    response = self.marketplace.publish(self.producer_id, prod)
-                    if response:
-                        time.sleep(self.republish_wait_time)
-                    else:
+            for (prod, quantity, normal_wait_time) in self.products:
+                quant = quantity
+                while quant > 0:
+                    if self.marketplace.publish(new_producer_id, prod):
                         time.sleep(normal_wait_time)
-                        index += 1
-
-
+                        quant -= 1
+                    else:
+                        time.sleep(self.republish_wait_time)
