@@ -7,7 +7,7 @@ March 2021
 """
 
 from threading import Thread
-
+import time
 
 class Consumer(Thread):
     """
@@ -37,4 +37,14 @@ class Consumer(Thread):
         self.retry_wait_time = retry_wait_time
 
     def run(self):
-        pass
+        for cart in self.carts:
+            new_cart_id = self.marketplace.new_cart()
+            for oper in cart:
+                for _ in range(oper["quantity"]):
+                    if oper["type"] == "add":
+                        response = self.marketplace.add_to_cart(new_cart_id, oper["product"])
+                    elif oper["type"] == "remove":
+                        response = self.marketplace.remove_from_cart(new_cart_id, oper["product"])
+                    if response is False:
+                        time.sleep(self.retry_wait_time)
+            self.marketplace.place_order(new_cart_id)
